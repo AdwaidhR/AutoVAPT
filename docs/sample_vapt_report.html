@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<title>AutoVAPT Report - http://127.0.0.1:8000</title>
+<style>
+:root{--critical:#7a1f1f;--high:#b3401a;--medium:#b8860b;--low:#2c6e49;--info:#3a4a5c;
+--dark:#1a1f2b;--panel:#f5f6f8;--border:#dcdfe4;}
+*{box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;margin:0;color:#1a1f2b;background:#fff;}
+.cover{background:var(--dark);color:#fff;padding:50px;}
+.cover h1{font-size:28px;margin:0 0 6px;}
+.cover .sub{color:#9aa4b2;font-size:14px;}
+.meta-row{margin-top:24px;display:flex;flex-wrap:wrap;gap:30px;font-size:13px;}
+.meta-row div span{display:block;color:#9aa4b2;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+section{padding:26px 50px;border-bottom:1px solid var(--border);}
+h2{font-size:19px;border-left:4px solid var(--dark);padding-left:12px;margin-bottom:16px;}
+h3{font-size:15px;margin:16px 0 8px;}
+table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;}
+th,td{text-align:left;padding:7px 9px;border:1px solid var(--border);vertical-align:top;}
+th{background:var(--panel);}
+.badge{display:inline-block;padding:2px 9px;border-radius:3px;color:#fff;font-size:11px;font-weight:600;}
+.Critical{background:var(--critical);} .High{background:var(--high);}
+.Medium{background:var(--medium);} .Low{background:var(--low);} .Info,.Informational{background:var(--info);}
+.risk-grid{display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+.risk-card{flex:1;min-width:100px;padding:14px;border-radius:6px;text-align:center;color:#fff;}
+.risk-card .num{font-size:24px;font-weight:700;} .risk-card .label{font-size:11px;text-transform:uppercase;}
+.disclaimer{background:#fff8e6;border:1px solid #e8d28a;padding:12px 16px;border-radius:5px;font-size:12.5px;}
+.mono{font-family:'Courier New',monospace;background:var(--panel);padding:2px 6px;border-radius:3px;font-size:12px;}
+.empty-note{color:#7a8290;font-style:italic;font-size:13px;}
+footer{padding:18px 50px;font-size:11px;color:#7a8290;}
+.toc{columns:2;font-size:13px;} .toc a{color:#1a1f2b;text-decoration:none;} .toc a:hover{text-decoration:underline;}
+</style></head><body>
+<div class="cover">
+  <h1>Vulnerability Assessment &amp; Reconnaissance Report</h1>
+  <div class="sub">Target: http://127.0.0.1:8000</div>
+  <div class="meta-row">
+    <div><span>Generated</span>2026-09-12T12:00:45</div>
+    <div><span>Duration</span>1.85s</div>
+    <div><span>Overall Risk</span><span class="badge High">High</span></div>
+  </div>
+</div>
+<section><h2>Table of Contents</h2><nav class='toc'><div><a href="#scope">1. Assessment Scope &amp; Authorization</a></div><div><a href="#exec-summary">2. Executive Summary</a></div><div><a href="#attack-surface">3. Attack Surface Overview</a></div><div><a href="#dns">4. DNS Reconnaissance</a></div><div><a href="#rdap">5. RDAP / WHOIS</a></div><div><a href="#subdomains">6. Subdomain Enumeration</a></div><div><a href="#ports">7. Port &amp; Service Enumeration</a></div><div><a href="#http">8. HTTP/HTTPS Reconnaissance</a></div><div><a href="#tls">9. TLS Analysis</a></div><div><a href="#tech">10. Technology Fingerprinting</a></div><div><a href="#crawl">11. Web Crawl</a></div><div><a href="#endpoints">12. Endpoint &amp; Parameter Discovery</a></div><div><a href="#js">13. JavaScript Analysis</a></div><div><a href="#content">14. Directory / Content Discovery</a></div><div><a href="#headers">15. Security Headers &amp; Cookies</a></div><div><a href="#findings">16. Vulnerability Findings</a></div><div><a href="#cves">17. CVE Correlation</a></div><div><a href="#methodology">18. Methodology</a></div></nav></section>
+<section id="scope"><h2>Assessment Scope &amp; Authorization</h2><table><tr><th>Field</th><th>Value</th></tr><tr><td>Target</td><td>http://127.0.0.1:8000</td></tr><tr><td>Authorization</td><td>Confirmed by operator prior to scan execution</td></tr><tr><td>Scan started</td><td>2026-09-12T12:00:43</td></tr><tr><td>Scan finished</td><td>2026-09-12T12:00:45</td></tr><tr><td>Duration</td><td>1.85s</td></tr><tr><td>Modules executed</td><td>dns_recon, rdap, port_scanner, http_recon, technology_fingerprint, web_crawler, js_analyzer, endpoint_discovery, directory_bruteforce, vulnerability_scanner, cve_correlator</td></tr></table></section><section id="exec-summary"><h2>Executive Summary</h2>
+            <p>This report presents automated reconnaissance and vulnerability-indicator
+            results for <strong>http://127.0.0.1:8000</strong>, produced by
+            AutoVAPT. All indicator-based findings require manual verification by a
+            qualified tester before being treated as confirmed vulnerabilities.</p>
+            <div class="risk-grid">
+              <div class="risk-card Critical"><div class="num">0</div><div class="label">Critical</div></div>
+              <div class="risk-card High"><div class="num">2</div><div class="label">High</div></div>
+              <div class="risk-card Medium"><div class="num">3</div><div class="label">Medium</div></div>
+              <div class="risk-card Low"><div class="num">3</div><div class="label">Low</div></div>
+              <div class="risk-card Info"><div class="num">2</div><div class="label">Info</div></div>
+            </div>
+            <p>Overall risk rating: <span class="badge High">High</span> &nbsp; (weighted score: 26.2)</p>
+        </section><section id="attack-surface"><h2>Attack Surface Overview</h2><table><tr><th>Metric</th><th>Value</th></tr><tr><td>Resolved IPv4</td><td>127.0.0.1</td></tr><tr><td>Subdomains discovered</td><td>0</td></tr><tr><td>Open ports</td><td>1</td></tr><tr><td>Pages crawled</td><td>3</td></tr><tr><td>Forms found</td><td>1</td></tr><tr><td>Endpoints found</td><td>10</td></tr><tr><td>Directories found</td><td>4</td></tr><tr><td>Technologies identified</td><td></td></tr><tr><td>Total security findings</td><td>10</td></tr></table></section><section id="dns"><h2>DNS Reconnaissance</h2><table><tr><th>Record</th><th>Value(s)</th></tr><tr><td>IPv4</td><td>127.0.0.1</td></tr><tr><td>IPv6</td><td>&mdash;</td></tr><tr><td>CNAME</td><td>&mdash;</td></tr><tr><td>MX</td><td>&mdash;</td></tr><tr><td>NS</td><td>&mdash;</td></tr><tr><td>TXT</td><td>&mdash;</td></tr><tr><td>SOA</td><td>&mdash;</td></tr></table><h3>Reverse DNS</h3><table><tr><th>IP</th><th>Hostname</th></tr><tr><td>127.0.0.1</td><td>localhost</td></tr></table><p class="empty-note">No dig/host/nslookup found - only A/AAAA records available. Install `dnsutils` (dig/host) for full record types.</p></section><section id="rdap"><h2>RDAP / WHOIS</h2><p class="empty-note">RDAP lookup failed and `whois` binary not found/failed. Install `whois` package for registrar-level detail.</p></section><section id="subdomains"><h2>Subdomain Enumeration</h2><p class="empty-note">Subdomain enumeration not run.</p></section><section id="ports"><h2>Port &amp; Service Enumeration</h2><p>Engine: <span class="mono">python-socket (stdlib)</span> | Spec: <span class="mono">7990-8010</span></p><table><tr><th>Port</th><th>Proto</th><th>Service</th><th>Product</th><th>Version</th><th>Banner</th></tr><tr><td>8000</td><td>tcp</td><td>http-alt</td><td></td><td></td><td></td></tr></table></section><section id="http"><h2>HTTP/HTTPS Reconnaissance</h2><p>Working base URL: <span class="mono">http://127.0.0.1:8000</span></p><h3>HTTPS</h3><table><tr><th>Field</th><th>Value</th></tr><tr><td>Status</td><td>None</td></tr><tr><td>Final URL</td><td>None</td></tr><tr><td>Title</td><td></td></tr><tr><td>Content-Length</td><td>0</td></tr><tr><td>Response time</td><td>0.6 ms</td></tr><tr><td>Error</td><td>URLError: [SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1000)</td></tr></table><h3>HTTP</h3><table><tr><th>Field</th><th>Value</th></tr><tr><td>Status</td><td>200</td></tr><tr><td>Final URL</td><td>http://127.0.0.1:8000</td></tr><tr><td>Title</td><td>AutoVAPT Lab Target</td></tr><tr><td>Content-Length</td><td>343</td></tr><tr><td>Response time</td><td>0.9 ms</td></tr><tr><td>Error</td><td>-</td></tr></table><p>robots.txt: Found (HTTP 200)</p><p>sitemap.xml: Not found (HTTP 404)</p><p>security.txt: Not found (HTTP 404)</p></section><section id="tls"><h2>TLS Analysis</h2><p class="empty-note">TLS analysis not run.</p></section><section id="tech"><h2>Technology Fingerprinting</h2><p class="empty-note">No technologies identified with sufficient evidence.</p></section><section id="crawl"><h2>Web Crawl</h2><p>3 pages crawled (max_pages=10, max_depth=2)</p><table><tr><th>URL</th><th>Status</th><th>Depth</th></tr><tr><td>http://127.0.0.1:8000</td><td>200</td><td>0</td></tr><tr><td>http://127.0.0.1:8000/about</td><td>200</td><td>1</td></tr><tr><td>http://127.0.0.1:8000/admin</td><td>200</td><td>1</td></tr></table></section><section id="endpoints"><h2>Endpoint &amp; Parameter Discovery</h2><table><tr><th>URL</th><th>Method</th><th>Source</th><th>Parameters</th></tr><tr><td>/admin</td><td>GET</td><td>robots.txt</td><td></td></tr><tr><td>/api/</td><td>GET</td><td>robots.txt</td><td></td></tr><tr><td>/api/v1</td><td>GET</td><td>javascript:http://127.0.0.1:8000/app.js</td><td></td></tr><tr><td>/auth/login</td><td>GET</td><td>javascript:http://127.0.0.1:8000/app.js</td><td></td></tr><tr><td>/debug/status</td><td>GET</td><td>javascript:http://127.0.0.1:8000/app.js</td><td></td></tr><tr><td>http://127.0.0.1:8000</td><td>GET</td><td>crawl</td><td></td></tr><tr><td>http://127.0.0.1:8000/about</td><td>GET</td><td>crawl</td><td></td></tr><tr><td>http://127.0.0.1:8000/admin</td><td>GET</td><td>crawl</td><td></td></tr><tr><td>http://127.0.0.1:8000/app.js</td><td>GET</td><td>script_src</td><td></td></tr><tr><td>http://127.0.0.1:8000/login</td><td>POST</td><td>html_form</td><td>username, password</td></tr></table></section><section id="js"><h2>JavaScript Analysis</h2><p>1 JS files analyzed.</p><h3>Endpoints found in JS</h3><table><tr><th>Path/URL</th></tr><tr><td>/api/v1</td></tr><tr><td>/auth/login</td></tr><tr><td>/debug/status</td></tr></table></section><section id="content"><h2>Directory / Content Discovery</h2><p>Engine: <span class="mono">native (stdlib)</span> | 45 words tested</p><table><tr><th>Path</th><th>Status</th><th>Length</th><th>Confidence</th></tr><tr><td>/.git/HEAD</td><td>200</td><td>21</td><td>Medium</td></tr><tr><td>/admin</td><td>200</td><td>56</td><td>Medium</td></tr><tr><td>/backup.sql</td><td>200</td><td>32</td><td>Medium</td></tr><tr><td>/robots.txt</td><td>200</td><td>47</td><td>Medium</td></tr></table></section><section id="headers"><h2>Security Headers &amp; Cookies</h2><h3>Security Headers</h3><table><tr><th>Finding</th><th>Severity</th></tr><tr><td>Missing Content-Security-Policy</td><td><span class="badge Medium">Medium</span></td></tr><tr><td>Missing X-Frame-Options / frame-ancestors</td><td><span class="badge Low">Low</span></td></tr><tr><td>Missing X-Content-Type-Options</td><td><span class="badge Low">Low</span></td></tr><tr><td>Missing Referrer-Policy</td><td><span class="badge Info">Info</span></td></tr><tr><td>Missing Permissions-Policy</td><td><span class="badge Info">Info</span></td></tr></table><h3>Cookie Security</h3><table><tr><th>Finding</th><th>Severity</th></tr><tr><td>Cookie &#x27;session&#x27; missing security attribute(s): HttpOnly, SameSite</td><td><span class="badge Low">Low</span></td></tr></table></section><section id="findings"><h2>Vulnerability Findings</h2>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0001: Missing Content-Security-Policy <span class="badge Medium">Medium</span>
+              <span class="mono">confidence: High</span></h3>
+          <p><strong>Category:</strong> Security Misconfiguration &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000</span></p>
+          <p>CSP mitigates XSS/data-injection impact; absence alone is not exploitable but raises the impact ceiling of any injection found elsewhere.</p>
+          <p><strong>Evidence:</strong> Header &#x27;Content-Security-Policy&#x27; absent from response to http://127.0.0.1:8000</p>
+          <p><strong>Remediation:</strong> Add the &#x27;Content-Security-Policy&#x27; header at the web server or reverse-proxy layer.</p>
+          <p><strong>Manual verification required:</strong> No</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0002: Missing X-Frame-Options / frame-ancestors <span class="badge Low">Low</span>
+              <span class="mono">confidence: High</span></h3>
+          <p><strong>Category:</strong> Security Misconfiguration &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000</span></p>
+          <p>Increases clickjacking risk on pages with sensitive actions (e.g. forms, buttons).</p>
+          <p><strong>Evidence:</strong> Header &#x27;X-Frame-Options&#x27; absent from response to http://127.0.0.1:8000</p>
+          <p><strong>Remediation:</strong> Add the &#x27;X-Frame-Options&#x27; header at the web server or reverse-proxy layer.</p>
+          <p><strong>Manual verification required:</strong> No</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0003: Missing X-Content-Type-Options <span class="badge Low">Low</span>
+              <span class="mono">confidence: High</span></h3>
+          <p><strong>Category:</strong> Security Misconfiguration &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000</span></p>
+          <p>Without &#x27;nosniff&#x27;, some browsers may MIME-sniff responses, enabling content-type confusion.</p>
+          <p><strong>Evidence:</strong> Header &#x27;X-Content-Type-Options&#x27; absent from response to http://127.0.0.1:8000</p>
+          <p><strong>Remediation:</strong> Add the &#x27;X-Content-Type-Options&#x27; header at the web server or reverse-proxy layer.</p>
+          <p><strong>Manual verification required:</strong> No</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0004: Missing Referrer-Policy <span class="badge Info">Info</span>
+              <span class="mono">confidence: High</span></h3>
+          <p><strong>Category:</strong> Security Misconfiguration &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000</span></p>
+          <p>Referrer header may leak full URLs (including query params) to third parties on outbound links.</p>
+          <p><strong>Evidence:</strong> Header &#x27;Referrer-Policy&#x27; absent from response to http://127.0.0.1:8000</p>
+          <p><strong>Remediation:</strong> Add the &#x27;Referrer-Policy&#x27; header at the web server or reverse-proxy layer.</p>
+          <p><strong>Manual verification required:</strong> No</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0005: Missing Permissions-Policy <span class="badge Info">Info</span>
+              <span class="mono">confidence: High</span></h3>
+          <p><strong>Category:</strong> Security Misconfiguration &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000</span></p>
+          <p>No explicit restriction on powerful browser features (camera, geolocation, etc.).</p>
+          <p><strong>Evidence:</strong> Header &#x27;Permissions-Policy&#x27; absent from response to http://127.0.0.1:8000</p>
+          <p><strong>Remediation:</strong> Add the &#x27;Permissions-Policy&#x27; header at the web server or reverse-proxy layer.</p>
+          <p><strong>Manual verification required:</strong> No</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0006: Cookie &#x27;session&#x27; missing security attribute(s): HttpOnly, SameSite <span class="badge Low">Low</span>
+              <span class="mono">confidence: High</span></h3>
+          <p><strong>Category:</strong> Security Misconfiguration &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000</span></p>
+          <p>Cookies without Secure/HttpOnly/SameSite attributes are more exposed to interception, script access, or CSRF-style abuse.</p>
+          <p><strong>Evidence:</strong> Set-Cookie for &#x27;session&#x27; lacked: HttpOnly, SameSite</p>
+          <p><strong>Remediation:</strong> Set HttpOnly, SameSite on the &#x27;session&#x27; cookie.</p>
+          <p><strong>Manual verification required:</strong> No</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0007: Potentially exposed sensitive file: /.git/HEAD <span class="badge High">High</span>
+              <span class="mono">confidence: Medium</span></h3>
+          <p><strong>Category:</strong> Information Disclosure &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000/.git/HEAD</span></p>
+          <p>A path commonly associated with secrets, version control metadata, or backups returned HTTP 200.</p>
+          <p><strong>Evidence:</strong> GET /.git/HEAD -&gt; 200, 21 bytes</p>
+          <p><strong>Remediation:</strong> Remove from the web root or block via server configuration; rotate any credentials that may have been exposed.</p>
+          <p><strong>Manual verification required:</strong> Yes</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0008: Potentially exposed sensitive file: /backup.sql <span class="badge High">High</span>
+              <span class="mono">confidence: Medium</span></h3>
+          <p><strong>Category:</strong> Information Disclosure &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000/backup.sql</span></p>
+          <p>A path commonly associated with secrets, version control metadata, or backups returned HTTP 200.</p>
+          <p><strong>Evidence:</strong> GET /backup.sql -&gt; 200, 32 bytes</p>
+          <p><strong>Remediation:</strong> Remove from the web root or block via server configuration; rotate any credentials that may have been exposed.</p>
+          <p><strong>Manual verification required:</strong> Yes</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0009: Potential Reflected XSS Indicator <span class="badge Medium">Medium</span>
+              <span class="mono">confidence: Low</span></h3>
+          <p><strong>Category:</strong> Injection (A03:2021) &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000/?q=%3Cavaptmarker123%3E</span></p>
+          <p>A harmless marker string included in a query parameter was reflected, unencoded, in the response body. This is an indicator only - it does not confirm script execution.</p>
+          <p><strong>Evidence:</strong> Marker &#x27;avaptmarker123&#x27; found reflected in response to http://127.0.0.1:8000/?q=%3Cavaptmarker123%3E</p>
+          <p><strong>Remediation:</strong> Ensure all user-controlled input is output-encoded for its context (HTML, attribute, JS) before rendering.</p>
+          <p><strong>Manual verification required:</strong> Yes</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:12px;">
+          <h3 style="margin:0 0 6px;">AVAPT-0010: Potential SQL Injection Indicator (error-based) <span class="badge Medium">Medium</span>
+              <span class="mono">confidence: Low</span></h3>
+          <p><strong>Category:</strong> Injection (A03:2021) &nbsp;|&nbsp;
+             <strong>Affected:</strong> <span class="mono">http://127.0.0.1:8000/?id=1%27</span></p>
+          <p>A single-quote character in a query parameter triggered what appears to be a database error signature. This is an indicator only - not a confirmed SQL injection.</p>
+          <p><strong>Evidence:</strong> Database error signature &#x27;sql syntax&#x27; observed after quote injection at http://127.0.0.1:8000/?id=1%27</p>
+          <p><strong>Remediation:</strong> Use parameterized queries / prepared statements everywhere; disable verbose error output in production.</p>
+          <p><strong>Manual verification required:</strong> Yes</p>
+        </div></section><section id="cves"><h2>CVE Correlation</h2><p class="empty-note">No CVE correlation performed (no versioned services detected, or NVD unavailable).</p></section><section id="methodology"><h2>Methodology</h2>
+    <ol>
+      <li>Authorization confirmed by operator before any active module ran.</li>
+      <li>Passive/DNS reconnaissance (WHOIS, RDAP, DNS records, certificate-transparency subdomain discovery).</li>
+      <li>Port and service enumeration (native TCP-connect scan, or Nmap if installed).</li>
+      <li>HTTP/HTTPS reconnaissance, TLS analysis, and technology fingerprinting.</li>
+      <li>Bounded same-host web crawl and endpoint/parameter inventory.</li>
+      <li>Static JavaScript analysis (no code execution).</li>
+      <li>Content discovery with soft-404 baseline filtering.</li>
+      <li>Non-destructive vulnerability indicator checks (headers, cookies, disclosure, injection indicators).</li>
+      <li>Conservative CVE correlation against the NVD database.</li>
+      <li>Evidence-weighted risk scoring and reporting.</li>
+    </ol>
+    <p class="empty-note">This methodology mirrors, at a smaller scale, how commercial
+    scanners (Nessus/OpenVAS/Burp/Nuclei) structure an automated assessment before human
+    validation.</p>
+    </section>
+<section><h3>Tool Versions</h3><ul><li>nmap: not used</li><li>ffuf: not used</li><li>nikto: not used</li></ul></section>
+<footer>Generated by AutoVAPT | For authorized security testing only |
+Automated indicators require manual verification before being treated as confirmed findings.</footer>
+</body></html>

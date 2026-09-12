@@ -1,0 +1,532 @@
+{
+  "target": "http://127.0.0.1:8000",
+  "metadata": {
+    "scan_start": "2026-09-12T12:00:43",
+    "modules_run": [
+      "dns_recon",
+      "rdap",
+      "port_scanner",
+      "http_recon",
+      "technology_fingerprint",
+      "web_crawler",
+      "js_analyzer",
+      "endpoint_discovery",
+      "directory_bruteforce",
+      "vulnerability_scanner",
+      "cve_correlator"
+    ],
+    "scan_end": "2026-09-12T12:00:45",
+    "duration_seconds": 1.85,
+    "generated_on": "2026-09-12T12:00:45"
+  },
+  "dns": {
+    "target": "127.0.0.1",
+    "ipv4": [
+      "127.0.0.1"
+    ],
+    "ipv6": [],
+    "cname": null,
+    "mx": null,
+    "ns": null,
+    "txt": null,
+    "soa": null,
+    "reverse_dns": {
+      "127.0.0.1": "localhost"
+    },
+    "resolution_method": "socket (stdlib)",
+    "notes": [
+      "No dig/host/nslookup found - only A/AAAA records available. Install `dnsutils` (dig/host) for full record types."
+    ]
+  },
+  "subdomains": {},
+  "rdap": {
+    "domain_rdap": null,
+    "whois_text": null,
+    "ip_rdap": {},
+    "note": "RDAP lookup failed and `whois` binary not found/failed. Install `whois` package for registrar-level detail."
+  },
+  "ports": {
+    "target": "127.0.0.1",
+    "port_spec": "7990-8010",
+    "engine": "python-socket (stdlib)",
+    "open_ports": [
+      {
+        "port": 8000,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "http-alt",
+        "product": "",
+        "version": "",
+        "banner": ""
+      }
+    ],
+    "error": null
+  },
+  "web": {
+    "target": "http://127.0.0.1:8000",
+    "http": {
+      "ok": true,
+      "status": 200,
+      "final_url": "http://127.0.0.1:8000",
+      "headers": {
+        "Server": "BaseHTTP/0.6 Python/3.12.3",
+        "Date": "Sat, 12 Sep 2026 12:00:43 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "343",
+        "Set-Cookie": "session=abc123; Path=/"
+      },
+      "redirect_chain": [],
+      "error": null,
+      "elapsed_ms": 0.9,
+      "content_length": 343,
+      "title": "AutoVAPT Lab Target"
+    },
+    "https": {
+      "ok": false,
+      "status": null,
+      "final_url": null,
+      "headers": {},
+      "redirect_chain": [],
+      "error": "URLError: [SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1000)",
+      "elapsed_ms": 0.6,
+      "content_length": 0,
+      "title": ""
+    },
+    "working_base_url": "http://127.0.0.1:8000",
+    "robots_txt": {
+      "status": 200,
+      "size": 47,
+      "excerpt": "User-agent: *\nDisallow: /admin\nDisallow: /api/\n"
+    },
+    "sitemap_xml": {
+      "status": 404,
+      "found": false
+    },
+    "security_txt": {
+      "status": 404,
+      "found": false
+    }
+  },
+  "tls": {},
+  "technologies": [],
+  "crawl": {
+    "base_url": "http://127.0.0.1:8000",
+    "host": "127.0.0.1",
+    "pages_crawled": 3,
+    "max_pages": 10,
+    "max_depth": 2,
+    "pages": [
+      {
+        "url": "http://127.0.0.1:8000",
+        "status": 200,
+        "content_type": "text/html",
+        "depth": 0,
+        "links_found": 2,
+        "forms": [
+          {
+            "action": "/login",
+            "method": "POST",
+            "inputs": [
+              {
+                "name": "username",
+                "type": "text"
+              },
+              {
+                "name": "password",
+                "type": "password"
+              }
+            ]
+          }
+        ],
+        "scripts": [
+          "http://127.0.0.1:8000/app.js"
+        ]
+      },
+      {
+        "url": "http://127.0.0.1:8000/about",
+        "status": 200,
+        "content_type": "text/html",
+        "depth": 1,
+        "links_found": 0,
+        "forms": [],
+        "scripts": []
+      },
+      {
+        "url": "http://127.0.0.1:8000/admin",
+        "status": 200,
+        "content_type": "text/html",
+        "depth": 1,
+        "links_found": 0,
+        "forms": [],
+        "scripts": []
+      }
+    ],
+    "forms": [
+      {
+        "action": "/login",
+        "method": "POST",
+        "inputs": [
+          {
+            "name": "username",
+            "type": "text"
+          },
+          {
+            "name": "password",
+            "type": "password"
+          }
+        ],
+        "page": "http://127.0.0.1:8000",
+        "action_resolved": "http://127.0.0.1:8000/login"
+      }
+    ],
+    "scripts": [
+      "http://127.0.0.1:8000/app.js"
+    ],
+    "errors": []
+  },
+  "javascript": {
+    "files_analyzed": 1,
+    "files": [
+      {
+        "url": "http://127.0.0.1:8000/app.js",
+        "fetched": true,
+        "endpoints_found": [
+          "/api/v1",
+          "/auth/login",
+          "/debug/status"
+        ],
+        "sensitive_indicators": []
+      }
+    ],
+    "unique_endpoints_found": [
+      "/api/v1",
+      "/auth/login",
+      "/debug/status"
+    ],
+    "sensitive_indicators": []
+  },
+  "endpoints": {
+    "total_endpoints": 10,
+    "endpoints": [
+      {
+        "url": "/admin",
+        "method": "GET",
+        "source": [
+          "robots.txt"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "/api/",
+        "method": "GET",
+        "source": [
+          "robots.txt"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "/api/v1",
+        "method": "GET",
+        "source": [
+          "javascript:http://127.0.0.1:8000/app.js"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "/auth/login",
+        "method": "GET",
+        "source": [
+          "javascript:http://127.0.0.1:8000/app.js"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "/debug/status",
+        "method": "GET",
+        "source": [
+          "javascript:http://127.0.0.1:8000/app.js"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "http://127.0.0.1:8000",
+        "method": "GET",
+        "source": [
+          "crawl"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "http://127.0.0.1:8000/about",
+        "method": "GET",
+        "source": [
+          "crawl"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "http://127.0.0.1:8000/admin",
+        "method": "GET",
+        "source": [
+          "crawl"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "http://127.0.0.1:8000/app.js",
+        "method": "GET",
+        "source": [
+          "script_src"
+        ],
+        "parameters": [],
+        "content_type": null
+      },
+      {
+        "url": "http://127.0.0.1:8000/login",
+        "method": "POST",
+        "source": [
+          "html_form"
+        ],
+        "parameters": [
+          "username",
+          "password"
+        ],
+        "content_type": null
+      }
+    ]
+  },
+  "content_discovery": {
+    "base_url": "http://127.0.0.1:8000",
+    "wordlist_used": "wordlists/common_dirs.txt",
+    "total_words": 45,
+    "baseline": {
+      "status": 404,
+      "length": 9,
+      "title": null
+    },
+    "engine": "native (stdlib)",
+    "discovered": [
+      {
+        "path": "/.git/HEAD",
+        "status": 200,
+        "length": 21,
+        "content_type": "text/plain",
+        "redirect": null,
+        "confidence": "Medium"
+      },
+      {
+        "path": "/admin",
+        "status": 200,
+        "length": 56,
+        "content_type": "text/html",
+        "redirect": null,
+        "confidence": "Medium"
+      },
+      {
+        "path": "/backup.sql",
+        "status": 200,
+        "length": 32,
+        "content_type": "text/plain",
+        "redirect": null,
+        "confidence": "Medium"
+      },
+      {
+        "path": "/robots.txt",
+        "status": 200,
+        "length": 47,
+        "content_type": "text/plain",
+        "redirect": null,
+        "confidence": "Medium"
+      }
+    ],
+    "ffuf_note": null
+  },
+  "findings": {
+    "total_findings": 10,
+    "findings": [
+      {
+        "id": "AVAPT-0001",
+        "title": "Missing Content-Security-Policy",
+        "category": "Security Misconfiguration",
+        "severity": "Medium",
+        "confidence": "High",
+        "description": "CSP mitigates XSS/data-injection impact; absence alone is not exploitable but raises the impact ceiling of any injection found elsewhere.",
+        "evidence": "Header 'Content-Security-Policy' absent from response to http://127.0.0.1:8000",
+        "affected_url": "http://127.0.0.1:8000",
+        "remediation": "Add the 'Content-Security-Policy' header at the web server or reverse-proxy layer.",
+        "manual_verification_required": false
+      },
+      {
+        "id": "AVAPT-0002",
+        "title": "Missing X-Frame-Options / frame-ancestors",
+        "category": "Security Misconfiguration",
+        "severity": "Low",
+        "confidence": "High",
+        "description": "Increases clickjacking risk on pages with sensitive actions (e.g. forms, buttons).",
+        "evidence": "Header 'X-Frame-Options' absent from response to http://127.0.0.1:8000",
+        "affected_url": "http://127.0.0.1:8000",
+        "remediation": "Add the 'X-Frame-Options' header at the web server or reverse-proxy layer.",
+        "manual_verification_required": false
+      },
+      {
+        "id": "AVAPT-0003",
+        "title": "Missing X-Content-Type-Options",
+        "category": "Security Misconfiguration",
+        "severity": "Low",
+        "confidence": "High",
+        "description": "Without 'nosniff', some browsers may MIME-sniff responses, enabling content-type confusion.",
+        "evidence": "Header 'X-Content-Type-Options' absent from response to http://127.0.0.1:8000",
+        "affected_url": "http://127.0.0.1:8000",
+        "remediation": "Add the 'X-Content-Type-Options' header at the web server or reverse-proxy layer.",
+        "manual_verification_required": false
+      },
+      {
+        "id": "AVAPT-0004",
+        "title": "Missing Referrer-Policy",
+        "category": "Security Misconfiguration",
+        "severity": "Info",
+        "confidence": "High",
+        "description": "Referrer header may leak full URLs (including query params) to third parties on outbound links.",
+        "evidence": "Header 'Referrer-Policy' absent from response to http://127.0.0.1:8000",
+        "affected_url": "http://127.0.0.1:8000",
+        "remediation": "Add the 'Referrer-Policy' header at the web server or reverse-proxy layer.",
+        "manual_verification_required": false
+      },
+      {
+        "id": "AVAPT-0005",
+        "title": "Missing Permissions-Policy",
+        "category": "Security Misconfiguration",
+        "severity": "Info",
+        "confidence": "High",
+        "description": "No explicit restriction on powerful browser features (camera, geolocation, etc.).",
+        "evidence": "Header 'Permissions-Policy' absent from response to http://127.0.0.1:8000",
+        "affected_url": "http://127.0.0.1:8000",
+        "remediation": "Add the 'Permissions-Policy' header at the web server or reverse-proxy layer.",
+        "manual_verification_required": false
+      },
+      {
+        "id": "AVAPT-0006",
+        "title": "Cookie 'session' missing security attribute(s): HttpOnly, SameSite",
+        "category": "Security Misconfiguration",
+        "severity": "Low",
+        "confidence": "High",
+        "description": "Cookies without Secure/HttpOnly/SameSite attributes are more exposed to interception, script access, or CSRF-style abuse.",
+        "evidence": "Set-Cookie for 'session' lacked: HttpOnly, SameSite",
+        "affected_url": "http://127.0.0.1:8000",
+        "remediation": "Set HttpOnly, SameSite on the 'session' cookie.",
+        "manual_verification_required": false
+      },
+      {
+        "id": "AVAPT-0007",
+        "title": "Potentially exposed sensitive file: /.git/HEAD",
+        "category": "Information Disclosure",
+        "severity": "High",
+        "confidence": "Medium",
+        "description": "A path commonly associated with secrets, version control metadata, or backups returned HTTP 200.",
+        "evidence": "GET /.git/HEAD -> 200, 21 bytes",
+        "affected_url": "http://127.0.0.1:8000/.git/HEAD",
+        "remediation": "Remove from the web root or block via server configuration; rotate any credentials that may have been exposed.",
+        "manual_verification_required": true
+      },
+      {
+        "id": "AVAPT-0008",
+        "title": "Potentially exposed sensitive file: /backup.sql",
+        "category": "Information Disclosure",
+        "severity": "High",
+        "confidence": "Medium",
+        "description": "A path commonly associated with secrets, version control metadata, or backups returned HTTP 200.",
+        "evidence": "GET /backup.sql -> 200, 32 bytes",
+        "affected_url": "http://127.0.0.1:8000/backup.sql",
+        "remediation": "Remove from the web root or block via server configuration; rotate any credentials that may have been exposed.",
+        "manual_verification_required": true
+      },
+      {
+        "id": "AVAPT-0009",
+        "title": "Potential Reflected XSS Indicator",
+        "category": "Injection (A03:2021)",
+        "severity": "Medium",
+        "confidence": "Low",
+        "description": "A harmless marker string included in a query parameter was reflected, unencoded, in the response body. This is an indicator only - it does not confirm script execution.",
+        "evidence": "Marker 'avaptmarker123' found reflected in response to http://127.0.0.1:8000/?q=%3Cavaptmarker123%3E",
+        "affected_url": "http://127.0.0.1:8000/?q=%3Cavaptmarker123%3E",
+        "remediation": "Ensure all user-controlled input is output-encoded for its context (HTML, attribute, JS) before rendering.",
+        "manual_verification_required": true
+      },
+      {
+        "id": "AVAPT-0010",
+        "title": "Potential SQL Injection Indicator (error-based)",
+        "category": "Injection (A03:2021)",
+        "severity": "Medium",
+        "confidence": "Low",
+        "description": "A single-quote character in a query parameter triggered what appears to be a database error signature. This is an indicator only - not a confirmed SQL injection.",
+        "evidence": "Database error signature 'sql syntax' observed after quote injection at http://127.0.0.1:8000/?id=1%27",
+        "affected_url": "http://127.0.0.1:8000/?id=1%27",
+        "remediation": "Use parameterized queries / prepared statements everywhere; disable verbose error output in production.",
+        "manual_verification_required": true
+      }
+    ],
+    "disclaimer": "All findings are automated INDICATORS derived from non-destructive probes. A qualified tester must manually verify each item before it is treated as a confirmed vulnerability in any client-facing report."
+  },
+  "cves": {
+    "services_checked": 0,
+    "results": [],
+    "methodology": "Keyword-matched against the NVD API by product/version. Every match is labeled 'Potential CVE Match' with verification_required=true - exact affected-version-range confirmation requires manual CPE analysis, which this tool surfaces but does not auto-resolve."
+  },
+  "attack_surface": {
+    "target": "http://127.0.0.1:8000",
+    "domains": {
+      "primary": "http://127.0.0.1:8000",
+      "resolved_ipv4": [
+        "127.0.0.1"
+      ],
+      "resolved_ipv6": []
+    },
+    "subdomains": {
+      "count": 0,
+      "items": []
+    },
+    "open_ports": {
+      "count": 1,
+      "services": [
+        {
+          "port": 8000,
+          "service": "http-alt",
+          "product": "",
+          "version": ""
+        }
+      ]
+    },
+    "web_applications": {
+      "working_base_url": "http://127.0.0.1:8000",
+      "pages_crawled": 3,
+      "forms_found": 1,
+      "scripts_found": 1,
+      "endpoints_found": 10,
+      "directories_found": 4,
+      "technologies_identified": []
+    },
+    "security_findings_summary": {
+      "total": 10
+    }
+  },
+  "risk": {
+    "counts": {
+      "Critical": 0,
+      "High": 2,
+      "Medium": 3,
+      "Low": 3,
+      "Info": 2
+    },
+    "weighted_score": 26.2,
+    "overall_risk": "High",
+    "methodology": "weighted_score = sum(severity_weight x confidence_multiplier) across all findings, including unverified CVE keyword matches (discounted 40%). overall_risk is derived from counts, not the raw score, so a handful of unrelated Low findings can't inflate the headline rating."
+  }
+}

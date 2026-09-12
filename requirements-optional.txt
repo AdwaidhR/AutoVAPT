@@ -1,0 +1,10 @@
+# These are NOT required to run AutoVAPT. The core framework works
+# entirely on the Python 3 standard library.
+#
+# Install this only if you want higher-fidelity PDF export via
+# weasyprint instead of the wkhtmltopdf/libreoffice binary fallbacks
+# (or instead of just using the HTML report, which always works):
+#
+#   pip install -r requirements-optional.txt
+#
+weasyprint>=60.0

@@ -1,0 +1,18 @@
+{
+  "scan": {
+    "default_ports": "1-1000",
+    "threads": 30,
+    "http_timeout_seconds": 8,
+    "max_crawl_pages": 50,
+    "max_crawl_depth": 2
+  },
+  "report": {
+    "default_format": "html",
+    "author": "Your Name",
+    "output_dir": "reports"
+  },
+  "nvd": {
+    "note": "No API key required for light usage. Add one at https://nvd.nist.gov/developers/request-an-api-key if you hit rate limits scanning many services in one run.",
+    "api_key": ""
+  }
+}
