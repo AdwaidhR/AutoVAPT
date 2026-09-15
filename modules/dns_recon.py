@@ -8,6 +8,7 @@ trying each in turn, and degrade gracefully to "unavailable" if none
 exist - we never require dnspython.
 """
 import socket
+import ipaddress
 from .utils import run_cmd, vlog
 from .external_tools import have
 
@@ -81,7 +82,18 @@ def run(target):
         result["notes"].append("Host did not resolve via getaddrinfo; "
                                 "target may be offline or a bare IP was given.")
 
-    if have("dig") or have("host") or have("nslookup"):
+    try:
+        ip_obj = ipaddress.ip_address(target)
+        is_ip = True
+    except ValueError:
+        ip_obj = None
+        is_ip = False
+
+    if is_ip:
+        result["target_type"] = "IPv4" if ip_obj.version == 4 else "IPv6"
+        result["notes"].append("Target is an IP address; domain DNS records (CNAME, MX, NS, TXT, SOA) are not applicable.")
+    elif have("dig") or have("host") or have("nslookup"):
+        result["target_type"] = "domain"
         result["cname"] = _resolve_record(target, "CNAME")
         result["mx"] = _resolve_record(target, "MX")
         result["ns"] = _resolve_record(target, "NS")
@@ -90,6 +102,7 @@ def run(target):
         tool = "dig" if have("dig") else ("host" if have("host") else "nslookup")
         result["resolution_method"] = f"socket + {tool}"
     else:
+        result["target_type"] = "domain"
         result["notes"].append(
             "No dig/host/nslookup found - only A/AAAA records available. "
             "Install `dnsutils` (dig/host) for full record types."

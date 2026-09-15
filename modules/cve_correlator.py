@@ -86,18 +86,39 @@ def _extract_cve_entries(nvd_response, detected_version):
     return entries
 
 
-def run(open_ports):
+def run(open_ports, target_port=None):
     """
     open_ports: list of {"port", "service", "product", "version", ...}
     from port_scanner.py output.
+
+    target_port is the port serving the supplied assessment URL. CVE
+    correlation still inventories every versioned service discovered on the
+    host, but records whether each service is part of the requested target.
+    This lets the report show host-level observations without allowing an
+    unrelated service to inflate the application risk score.
     """
     results = []
+    skipped = []
     queried = 0
 
     for svc in (open_ports or []):
         product = svc.get("product", "").strip()
         version = svc.get("version", "").strip()
         if not product or queried >= MAX_SERVICES_QUERIED:
+            continue
+
+        # Never perform broad product-only CVE matching when the detected
+        # version is unknown. Product-only matches create severe false positives
+        # because they can span many years and unrelated affected versions.
+        if not version:
+            skipped.append({
+                "port": svc.get("port"), "service": svc.get("service"),
+                "product": product, "version": version,
+                "target_service": (target_port is None or svc.get("port") == target_port),
+                "classification": ("Target application service" if target_port is None or svc.get("port") == target_port
+                                    else "Host-level service outside requested target port"),
+                "reason": "Version not detected; CVE correlation skipped to avoid product-only false positives.",
+            })
             continue
 
         nvd_response = _query_nvd(product, version)
@@ -113,16 +134,23 @@ def run(open_ports):
             continue
 
         entries = _extract_cve_entries(nvd_response, version)
+        port = svc.get("port")
         results.append({
-            "port": svc.get("port"), "service": svc.get("service"),
+            "port": port, "service": svc.get("service"),
             "product": product, "version": version, "cves": entries,
+            "target_service": (target_port is None or port == target_port),
+            "classification": ("Target application service" if target_port is None or port == target_port
+                                else "Host-level service outside requested target port"),
         })
 
     return {
         "services_checked": queried,
+        "target_port": target_port,
         "results": results,
+        "skipped": skipped,
         "methodology": (
-            "Keyword-matched against the NVD API by product/version. Every match is "
+            "Keyword-matched against the NVD API by product/version. Services without a detected version are skipped "
+            "to avoid broad product-only false positives. Every match is "
             "labeled 'Potential CVE Match' with verification_required=true - exact "
             "affected-version-range confirmation requires manual CPE analysis, which "
             "this tool surfaces but does not auto-resolve."

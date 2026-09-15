@@ -23,7 +23,8 @@ import time
 import socket
 from urllib.parse import urlparse
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, PROJECT_DIR)
 
 from modules.utils import banner, log, set_verbose, now_iso, load_json
 from modules import authorization
@@ -46,7 +47,7 @@ from modules import report_generator
 
 
 def parse_args():
-    cfg = load_json(os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json"))
+    cfg = load_json(os.path.join(PROJECT_DIR, "config.json"))
     scan_cfg = cfg.get("scan", {})
     report_cfg = cfg.get("report", {})
 
@@ -102,10 +103,44 @@ built-in defaults if config.json is missing or a key is absent).
 
 
 def resolve_host_and_url(target):
-    """Accepts a bare domain, IP, or full URL. Returns (host, url_hint)."""
+    """Accept a bare domain/IP or URL. Return (host, url_hint, target_port)."""
     if target.startswith("http://") or target.startswith("https://"):
-        return urlparse(target).netloc.split(":")[0], target
-    return target, None
+        parsed = urlparse(target)
+        host = parsed.hostname or ""
+        # Only an explicitly supplied port needs to be added to a default scan
+        # range. Default HTTP/HTTPS ports are normally already covered.
+        target_port = parsed.port
+        return host, target, target_port
+    return target, None, None
+
+
+def _record_observed_web_port(ports_result, base_url):
+    """Record a reachable HTTP(S) port even when network port scanning misses it."""
+    if not base_url or not isinstance(ports_result, dict):
+        return None
+    parsed = urlparse(base_url)
+    observed_port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    open_ports = ports_result.setdefault("open_ports", [])
+    if not any(int(p.get("port", -1)) == observed_port for p in open_ports):
+        open_ports.append({
+            "port": observed_port, "protocol": "tcp", "state": "open",
+            "service": "https" if parsed.scheme == "https" else "http",
+            "product": "", "version": "", "banner": "",
+            "source": "HTTP reconnaissance (reachable application)",
+        })
+        open_ports.sort(key=lambda x: x.get("port", 0))
+        ports_result["http_observed_ports"] = [observed_port]
+    return observed_port
+
+
+def resolve_tls_port(target_port):
+    """
+    Determine which port TLS analysis should connect to. Regression
+    guard for a bug where TLS analysis always connected to port 443
+    even when the target explicitly specified a different HTTPS port
+    (e.g. https://host:8443/App/).
+    """
+    return target_port or 443
 
 
 def main():
@@ -121,9 +156,14 @@ def main():
         sys.exit(1)
 
     set_verbose(args.verbose)
-    host, url_hint = resolve_host_and_url(args.target)
+    host, url_hint, target_port = resolve_host_and_url(args.target)
 
     authorization.confirm_authorization(args.target, args.authorized, args.non_interactive)
+
+    # The supplied target URL defines the application boundary. Web crawling,
+    # endpoint discovery, JavaScript analysis, content discovery, and vulnerability
+    # checks stay on the target host and preserve the target application's path.
+    log("OK", f"Assessment target: {args.target}")
 
     if args.deep:
         args.ports = "1-65535"
@@ -138,6 +178,12 @@ def main():
 
     results = {
         "target": args.target,
+        "target_info": {
+            "host": host,
+            "target_port": target_port,
+            "scheme": urlparse(url_hint).scheme if url_hint else None,
+            "application_path": urlparse(url_hint).path if url_hint else "/",
+        },
         "metadata": {"scan_start": now_iso(), "modules_run": []},
     }
 
@@ -161,7 +207,7 @@ def main():
     # --- Subdomain enumeration ---
     if not args.skip_subdomains and "." in host and not host.replace(".", "").isdigit():
         log("PHASE", "Subdomain Enumeration")
-        wl = "wordlists/subdomains.txt"
+        wl = os.path.join(PROJECT_DIR, "wordlists", "subdomains.txt")
         results["subdomains"] = subdomain_enum.run(host, wordlist_path=wl, threads=args.threads)
         ran("subdomain_enum")
     else:
@@ -174,8 +220,13 @@ def main():
 
     # --- Port scanning ---
     if not args.skip_ports:
-        log("PHASE", f"Port & Service Enumeration ({args.ports})")
-        results["ports"] = port_scanner.run(host, args.ports, threads=args.threads)
+        port_label = args.ports
+        if target_port:
+            port_label += f" + target port {target_port}"
+        log("PHASE", f"Port & Service Enumeration ({port_label})")
+        results["ports"] = port_scanner.run(
+            host, args.ports, threads=args.threads, required_ports=[target_port] if target_port else []
+        )
         ran("port_scanner")
     else:
         results["ports"] = {}
@@ -186,11 +237,24 @@ def main():
     ran("http_recon")
     base_url = results["web"].get("working_base_url")
 
+    # HTTP reconnaissance is authoritative for the explicitly supplied web
+    # target. Some public/lab hosts filter SYN scans while still serving HTTP;
+    # do not discard a reachable application merely because Nmap/native TCP
+    # enumeration could not observe its port. Add the observed web service to
+    # the attack-surface inventory without pretending the port scanner found it.
+    if base_url and not args.skip_ports:
+        _record_observed_web_port(results.get("ports", {}), base_url)
+
     if base_url:
         # --- TLS analysis ---
         if base_url.startswith("https://"):
             log("PHASE", "TLS Analysis")
-            results["tls"] = tls_analyzer.run(host)
+            # Use the explicitly targeted port when the URL specified one;
+            # otherwise fall back to the default HTTPS port. Without this,
+            # a target like https://host:8443/App/ would be silently
+            # TLS-checked against port 443 instead of the real port 8443.
+            tls_port = resolve_tls_port(target_port)
+            results["tls"] = tls_analyzer.run(host, port=tls_port)
             ran("tls_analyzer")
         else:
             results["tls"] = {}
@@ -200,7 +264,7 @@ def main():
         scheme = base_url.split("://")[0]
         primary = results["web"].get(scheme, {})
         results["technologies"] = technology_fingerprint.run(
-            primary.get("headers", {}), primary.get("body", "")
+            primary.get("headers", {}), primary.get("body_excerpt", primary.get("body", ""))
         )
         ran("technology_fingerprint")
 
@@ -215,7 +279,7 @@ def main():
 
         # --- JS analysis ---
         log("PHASE", "JavaScript Static Analysis")
-        results["javascript"] = js_analyzer.run(results["crawl"].get("scripts", []))
+        results["javascript"] = js_analyzer.run(results["crawl"].get("scripts", []), target_url=base_url)
         ran("js_analyzer")
 
         # --- Endpoint discovery ---
@@ -224,14 +288,14 @@ def main():
         sitemap_text = (results["web"].get("sitemap_xml") or {}).get("excerpt")
         results["endpoints"] = endpoint_discovery.run(
             crawl_result=results["crawl"], js_findings=results["javascript"],
-            robots_text=robots_text, sitemap_text=sitemap_text,
+            robots_text=robots_text, sitemap_text=sitemap_text, target_url=base_url,
         )
         ran("endpoint_discovery")
 
         # --- Content discovery ---
         if not args.skip_content:
             log("PHASE", "Directory / Content Discovery")
-            wl = args.wordlist or "wordlists/common_dirs.txt"
+            wl = args.wordlist or os.path.join(PROJECT_DIR, "wordlists", "common_dirs.txt")
             results["content_discovery"] = directory_bruteforce.run(
                 base_url, wordlist_path=wl, threads=args.threads,
                 extensions=extensions, use_ffuf=args.ffuf,
@@ -261,7 +325,7 @@ def main():
 
     # --- CVE correlation ---
     log("PHASE", "CVE Correlation")
-    results["cves"] = cve_correlator.run(results.get("ports", {}).get("open_ports", []))
+    results["cves"] = cve_correlator.run(results.get("ports", {}).get("open_ports", []), target_port=target_port)
     ran("cve_correlator")
 
     # --- Attack surface map ---

@@ -15,7 +15,13 @@ import time
 import socket
 import http.client
 import urllib.request
+import urllib.parse
 import urllib.error
+import subprocess
+import tempfile
+import os
+import shutil
+from pathlib import Path
 from html.parser import HTMLParser
 from .utils import vlog
 
@@ -80,6 +86,8 @@ class FetchResult:
         }
         if include_body:
             d["body"] = self.body
+        else:
+            d["body_excerpt"] = self.body[:200_000]
         return d
 
 
@@ -90,6 +98,80 @@ class _RedirectRecorder(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         self.chain.append({"status": code, "location": newurl})
         return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _fetch_with_curl(url, method, timeout, max_body_bytes, allow_redirects, headers):
+    """Best-effort external fallback for targets that behave differently with urllib.
+
+    Curl is optional. This fallback is deliberately used only after urllib fails,
+    and a second attempt bypasses inherited proxy settings because public lab
+    targets can reject scanner/proxy connection paths while remaining reachable
+    directly.
+    """
+    if not shutil.which("curl"):
+        return None
+    try:
+        with tempfile.TemporaryDirectory(prefix="autovapt-fetch-") as td:
+            hdr = os.path.join(td, "headers")
+            body = os.path.join(td, "body")
+            cmd = ["curl", "-k", "-sS", "--max-time", str(max(1, int(timeout))),
+                   "-A", headers.get("User-Agent", USER_AGENT), "-D", hdr, "-o", body]
+            if method != "GET":
+                cmd += ["-X", method]
+            if allow_redirects:
+                cmd.append("-L")
+            else:
+                cmd.append("--max-redirs")
+                cmd.append("0")
+            # First respect the environment, then retry direct if necessary.
+            attempts = [cmd, cmd + ["--noproxy", "*"]]
+            last_err = "curl failed"
+            for attempt in attempts:
+                try:
+                    proc = subprocess.run(attempt + [url], capture_output=True, text=False,
+                                          timeout=max(2, int(timeout) + 2))
+                except Exception as exc:
+                    last_err = str(exc)
+                    continue
+                if proc.returncode != 0:
+                    last_err = proc.stderr.decode("utf-8", "ignore")[:300] or f"curl exit {proc.returncode}"
+                    continue
+                try:
+                    raw_headers = Path(hdr).read_text(errors="ignore")
+                except Exception:
+                    raw_headers = ""
+                try:
+                    data = Path(body).read_bytes()[:max_body_bytes]
+                except Exception:
+                    data = b""
+                # With redirects, curl writes multiple response header blocks.
+                blocks = re.split(r"\r?\n\r?\n", raw_headers.strip())
+                last = blocks[-1] if blocks else ""
+                lines = last.splitlines()
+                status = None
+                response_headers = {}
+                for line in lines:
+                    if line.startswith("HTTP/"):
+                        parts = line.split(None, 2)
+                        if len(parts) >= 2 and parts[1].isdigit():
+                            status = int(parts[1])
+                    elif ":" in line:
+                        k, v = line.split(":", 1)
+                        response_headers[k.strip()] = v.strip()
+                if status is None:
+                    return None
+                r = FetchResult()
+                r.ok = True
+                r.status = status
+                r.final_url = url
+                r.headers = response_headers
+                r.body_bytes = data
+                r.body = data.decode("utf-8", errors="ignore")
+                return r
+            vlog(f"curl fallback for {url} failed: {last_err}")
+    except Exception as exc:
+        vlog(f"curl fallback error for {url}: {exc}")
+    return None
 
 
 def fetch(url, method="GET", timeout=DEFAULT_TIMEOUT, max_body_bytes=1_500_000,
@@ -106,25 +188,21 @@ def fetch(url, method="GET", timeout=DEFAULT_TIMEOUT, max_body_bytes=1_500_000,
         headers.update(extra_headers)
 
     redirector = _RedirectRecorder()
-    opener = urllib.request.build_opener(
-        redirector,
-        urllib.request.HTTPSHandler(context=_INSECURE_CTX),
-    )
-    if not allow_redirects:
-        opener = urllib.request.build_opener(
-            urllib.request.HTTPSHandler(context=_INSECURE_CTX),
-        )
-        # Neuter redirects by using a handler that raises instead of following
-        class NoRedirect(urllib.request.HTTPRedirectHandler):
-            def redirect_request(self, *a, **kw):
-                return None
-        opener = urllib.request.build_opener(
-            NoRedirect(), urllib.request.HTTPSHandler(context=_INSECURE_CTX),
-        )
-
     req = urllib.request.Request(url, method=method, headers=headers)
     start = time.time()
     try:
+        if allow_redirects:
+            opener = urllib.request.build_opener(
+                redirector, urllib.request.HTTPSHandler(context=_INSECURE_CTX),
+            )
+        else:
+            # Neuter redirects by using a handler that raises instead of following.
+            class NoRedirect(urllib.request.HTTPRedirectHandler):
+                def redirect_request(self, *a, **kw):
+                    return None
+            opener = urllib.request.build_opener(
+                NoRedirect(), urllib.request.HTTPSHandler(context=_INSECURE_CTX),
+            )
         with opener.open(req, timeout=timeout) as resp:
             body = resp.read(max_body_bytes)
             result.ok = True
@@ -160,24 +238,47 @@ def fetch(url, method="GET", timeout=DEFAULT_TIMEOUT, max_body_bytes=1_500_000,
     finally:
         result.elapsed_ms = round((time.time() - start) * 1000, 1)
 
+    # Public lab targets occasionally reject urllib's connection path while
+    # accepting curl. Keep urllib as the core client and use curl only as a
+    # bounded compatibility fallback.
+    if not result.ok:
+        fallback = _fetch_with_curl(url, method, timeout, max_body_bytes, allow_redirects, headers)
+        if fallback is not None:
+            fallback.error = None
+            fallback.elapsed_ms = round((time.time() - start) * 1000, 1)
+            return fallback
+
     return result
 
 
 def _try_scheme(host_or_url):
     """Given a bare host or a full URL, return list of candidate base URLs to try."""
     if host_or_url.startswith("http://") or host_or_url.startswith("https://"):
-        return [host_or_url.rstrip("/")]
+        # Preserve the full URL exactly, including a trailing slash that can
+        # be significant for application context paths such as /WebGoat/.
+        return [host_or_url]
     return [f"https://{host_or_url}", f"http://{host_or_url}"]
 
 
 def probe_scheme(target):
-    """Try https first, then http. Returns (working_base_url, FetchResult) or (None, last_error_result)."""
+    """Try candidate schemes while preserving any application path."""
     last = None
     for base in _try_scheme(target):
         r = fetch(base)
         last = r
         if r.ok:
-            return base.split("://")[0] + "://" + base.split("://")[1].split("/")[0], r
+            parsed = urllib.parse.urlparse(base)
+            # Keep the original path as the application scope. A redirect to
+            # /WebGoat/login should not turn /WebGoat/ into /.
+            path = parsed.path or "/"
+            if not path.startswith("/"):
+                path = "/" + path
+            preserved = f"{parsed.scheme}://{parsed.netloc}{path}"
+            if parsed.params:
+                preserved += ";" + parsed.params
+            if parsed.query:
+                preserved += "?" + parsed.query
+            return preserved, r
     return None, last
 
 
@@ -200,14 +301,18 @@ def run(target):
 
     # Also record the *other* scheme's result for comparison (e.g. does
     # http redirect to https, or is it not listening at all)
+    parsed_target = urllib.parse.urlparse(target if target.startswith(("http://", "https://")) else f"{scheme}://{target}")
     other_scheme = "http" if scheme.startswith("https") else "https"
-    other_host = target.split("://")[-1]
-    other_result = fetch(f"{other_scheme}://{other_host}")
+    other_target = f"{other_scheme}://{parsed_target.netloc}{parsed_target.path or '/'}"
+    if parsed_target.query:
+        other_target += "?" + parsed_target.query
+    other_result = fetch(other_target)
     result[other_scheme] = other_result.to_dict()
 
-    for path, key in [("/robots.txt", "robots_txt"), ("/sitemap.xml", "sitemap_xml"),
-                       ("/.well-known/security.txt", "security_txt")]:
-        r = fetch(base_url.rstrip("/") + path)
+    app_root = base_url.rstrip("/") + "/"
+    for path, key in [("robots.txt", "robots_txt"), ("sitemap.xml", "sitemap_xml"),
+                       (".well-known/security.txt", "security_txt")]:
+        r = fetch(urllib.parse.urljoin(app_root, path))
         if r.ok and r.status == 200:
             result[key] = {"status": r.status, "size": len(r.body_bytes),
                             "excerpt": r.body[:500]}

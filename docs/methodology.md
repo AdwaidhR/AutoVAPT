@@ -37,7 +37,7 @@ Directory / Content Discovery (soft-404 baseline filtering, optional FFUF)
 Non-destructive Vulnerability Indicators (headers, cookies, disclosure,
                                             injection indicators)
     v
-CVE Correlation               (NVD keyword match, conservative labeling)
+CVE Correlation               (NVD product/version match; unknown versions skipped)
     v
 Attack Surface Map            (structured summary tree)
     v

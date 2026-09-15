@@ -41,27 +41,38 @@ def _random_path():
 def _get_baseline(base_url):
     """Request a near-certainly-nonexistent path to fingerprint soft-404 pages."""
     probe_url = base_url.rstrip("/") + "/" + _random_path()
-    r = fetch(probe_url)
+    r = fetch(probe_url, allow_redirects=False)
     return {"status": r.status, "length": len(r.body_bytes) if r.ok else 0,
+            "location": r.headers.get("Location", "") if r.ok else "",
             "title": "" if not r.ok else None}
 
 
-def _is_soft_404(status, length, baseline, tolerance=25):
-    """
-    A "soft 404" is a response that claims success (e.g. HTTP 200) for a
-    path that doesn't really exist - common with SPA routers and custom
-    error pages. We detect it by comparing against a baseline request to
-    a near-certainly-nonexistent random path.
+def _is_soft_404(status, length, baseline, tolerance=25, location=""):
 
-    A genuine HTTP 404 is never "soft" by definition - it's already an
-    honest not-found signal (and is filtered out upstream by
-    INTERESTING_CODES before this function is even called in practice).
-    """
+    """Identify responses matching a known non-existent-path baseline."""
     if status == 404:
         return False
-    if baseline["status"] == status:
-        return abs(length - baseline["length"]) <= tolerance
-    return False
+    if baseline["status"] != status:
+        return False
+    if status in (301, 302, 303, 307, 308):
+        return bool(location) and location == baseline.get("location", "")
+    return abs(length - baseline["length"]) <= tolerance
+
+
+def _join_base_path(base_url, word):
+    """Join a discovered word to the supplied application base without escaping its application path."""
+    base = base_url.rstrip("/") + "/"
+    clean = str(word).lstrip("/")
+    return base + clean
+
+
+def _display_path(url):
+    """Return the path portion of a discovered URL, preserving the application prefix."""
+    try:
+        from urllib.parse import urlsplit
+        return urlsplit(url).path or "/"
+    except Exception:
+        return url
 
 
 def _native_scan(base_url, words, extensions, threads, baseline):
@@ -73,15 +84,15 @@ def _native_scan(base_url, words, extensions, threads, baseline):
             candidates.append(f"{w}.{ext}")
 
     def probe(word):
-        url = f"{base_url.rstrip('/')}/{word}"
+        url = _join_base_path(base_url, word)
         r = fetch(url, allow_redirects=False)
         if not r.ok or r.status not in INTERESTING_CODES:
             return None
         length = len(r.body_bytes)
-        if _is_soft_404(r.status, length, baseline):
+        if _is_soft_404(r.status, length, baseline, location=r.headers.get("Location", "")):
             return None
         return {
-            "path": f"/{word}", "status": r.status, "length": length,
+            "path": _display_path(url), "url": url, "status": r.status, "length": length,
             "content_type": r.headers.get("Content-Type", ""),
             "redirect": r.headers.get("Location"),
             "confidence": "High" if r.status in (401, 403) else "Medium",
@@ -115,7 +126,8 @@ def _ffuf_scan(base_url, wordlist_path, extensions, threads):
             data = json.load(f)
         for r in data.get("results", []):
             findings.append({
-                "path": "/" + r.get("input", {}).get("FUZZ", ""),
+                "path": _display_path(_join_base_path(base_url, r.get("input", {}).get("FUZZ", ""))),
+                "url": _join_base_path(base_url, r.get("input", {}).get("FUZZ", "")),
                 "status": r.get("status"), "length": r.get("length"),
                 "content_type": r.get("content-type", ""),
                 "redirect": None, "confidence": "Medium (ffuf)",

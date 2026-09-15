@@ -38,3 +38,25 @@ class TestRiskEngine(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestCVETargetRiskBoundary(unittest.TestCase):
+    def test_unrelated_service_cve_does_not_affect_application_risk(self):
+        cves = {"results": [
+            {"port": 8080, "target_service": True, "cves": []},
+            {"port": 80, "target_service": False, "cves": [
+                {"severity": "Critical", "cvss_score": 9.8}
+            ]},
+        ]}
+        result = risk_engine.score([], cves)
+        self.assertEqual(result["overall_risk"], "Informational")
+        self.assertEqual(result["weighted_score"], 0)
+
+    def test_target_service_cve_affects_application_risk(self):
+        cves = {"results": [
+            {"port": 8080, "target_service": True, "cves": [
+                {"severity": "High", "cvss_score": 8.1}
+            ]},
+        ]}
+        result = risk_engine.score([], cves)
+        self.assertEqual(result["overall_risk"], "Medium")
+        self.assertEqual(result["counts"]["High"], 1)

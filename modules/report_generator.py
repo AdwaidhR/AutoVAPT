@@ -69,10 +69,14 @@ def _section(title, anchor, body_html):
 
 # ---- Individual section renderers -----------------------------------------
 
-def _sec_scope(results):
+def _sec_target(results):
     meta = results.get("metadata", {})
+    target_info = results.get("target_info", {})
     rows = [
-        ["Target", esc(str(results.get("target", "")))],
+        ["Host", esc(str(target_info.get("host") or ""))],
+        ["Target port", esc(str(target_info.get("target_port") or "default"))],
+        ["Application path", esc(str(target_info.get("application_path") or "/"))],
+        ["Assessment target", esc(str(results.get("target", "")))],
         ["Authorization", "Confirmed by operator prior to scan execution"],
         ["Scan started", esc(str(meta.get("scan_start", "")))],
         ["Scan finished", esc(str(meta.get("scan_end", "")))],
@@ -210,9 +214,18 @@ def _sec_crawl(crawl):
 def _sec_endpoints(endpoints):
     if not endpoints:
         return '<p class="empty-note">Endpoint discovery not run.</p>'
+    html = (f'<p>{endpoints.get("total_endpoints", 0)} in-scope target endpoints discovered; '
+            f'{endpoints.get("total_external_references", 0)} external/out-of-scope references classified separately.</p>')
     rows = [[esc(e["url"]), esc(e["method"]), esc(", ".join(e["source"])), esc(", ".join(e.get("parameters", [])))]
             for e in endpoints.get("endpoints", [])[:80]]
-    return _table(["URL", "Method", "Source", "Parameters"], rows, "No endpoints discovered.")
+    html += _table(["Target URL", "Method", "Source", "Parameters"], rows, "No in-scope endpoints discovered.")
+    external = endpoints.get("external_references", [])
+    if external:
+        rows = [[esc(e["url"]), esc(", ".join(e["source"])), esc(e.get("reason", "outside assessment scope"))]
+                for e in external[:80]]
+        html += '<h3>External / Out-of-Scope References</h3>'
+        html += _table(["Reference", "Source", "Classification"], rows)
+    return html
 
 
 def _sec_js(js):
@@ -221,7 +234,10 @@ def _sec_js(js):
     html = f"<p>{js.get('files_analyzed',0)} JS files analyzed.</p>"
     if js.get("unique_endpoints_found"):
         rows = [[esc(e)] for e in js["unique_endpoints_found"][:60]]
-        html += "<h3>Endpoints found in JS</h3>" + _table(["Path/URL"], rows)
+        html += "<h3>In-Scope Endpoints Found in JS</h3>" + _table(["Target Path/URL"], rows)
+    if js.get("external_references"):
+        rows = [[esc(e)] for e in js["external_references"][:60]]
+        html += "<h3>External / Out-of-Scope References Found in JS</h3>" + _table(["Reference"], rows)
     if js.get("sensitive_indicators"):
         rows = [[esc(s["file"]), esc(s["label"])] for s in js["sensitive_indicators"]]
         html += "<h3>Potential Sensitive Client-Side References (manual verification required)</h3>"
@@ -275,11 +291,23 @@ def _sec_findings(findings):
 
 
 def _sec_cves(cve_data):
-    if not cve_data or not cve_data.get("results"):
+    if not cve_data or (not cve_data.get("results") and not cve_data.get("skipped")):
         return '<p class="empty-note">No CVE correlation performed (no versioned services detected, or NVD unavailable).</p>'
     html = f'<p class="disclaimer">{esc(cve_data.get("methodology",""))}</p>'
+    if cve_data.get("target_port") is not None:
+        html += (f'<p class="empty-note"><strong>Risk-scoring boundary:</strong> only CVEs for '
+                 f'target port {esc(str(cve_data.get("target_port")))} affect the application risk rating. '
+                 f'Other services are retained as host-level observations.</p>')
+    for svc in cve_data.get("skipped", []):
+        label = svc.get("classification", "Target application service")
+        html += (f'<p class="empty-note"><strong>Port {esc(str(svc.get("port")))} &mdash; '
+                 f'{esc(svc.get("product", ""))}</strong> '
+                 f'<span class="mono">[{esc(label)}]</span>: {esc(svc.get("reason", ""))}</p>')
     for svc in cve_data["results"]:
-        html += f"<h3>Port {svc.get('port')} &mdash; {esc(svc.get('product',''))} {esc(svc.get('version',''))}</h3>"
+        label = svc.get("classification", "Target application service")
+        html += (f"<h3>Port {svc.get('port')} &mdash; {esc(svc.get('product',''))} "
+                 f"{esc(svc.get('version',''))} "
+                 f"<span class=\"mono\">[{esc(label)}]</span></h3>")
         if svc.get("note"):
             html += f'<p class="empty-note">{esc(svc["note"])}</p>'
             continue
@@ -337,7 +365,7 @@ def generate(results, output_dir, fmt="html", tool_versions=None):
     results["risk"] = risk
 
     sections = [
-        ("Assessment Scope & Authorization", "scope", _sec_scope(results)),
+        ("Assessment Target & Authorization", "scope", _sec_target(results)),
         ("Executive Summary", "exec-summary", f"""
             <p>This report presents automated reconnaissance and vulnerability-indicator
             results for <strong>{esc(str(results.get('target','')))}</strong>, produced by

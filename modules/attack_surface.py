@@ -18,8 +18,10 @@ def build(results):
     content_discovery = results.get("content_discovery", {})
     tech = results.get("technologies", [])
 
+    target_info = results.get("target_info", {})
     return {
         "target": results.get("target"),
+        "target_info": target_info,
         "domains": {
             "primary": results.get("target"),
             "resolved_ipv4": dns.get("ipv4", []),

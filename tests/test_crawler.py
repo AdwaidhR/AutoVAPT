@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from modules.web_crawler import _normalize, _same_host, PageParser
+from modules.web_crawler import _normalize, _same_host, _in_scope, _path_scope, PageParser
 
 
 class TestURLNormalization(unittest.TestCase):
@@ -32,6 +32,18 @@ class TestURLNormalization(unittest.TestCase):
     def test_same_host(self):
         self.assertTrue(_same_host("http://example.com/x", "example.com"))
         self.assertFalse(_same_host("http://other.com/x", "example.com"))
+
+    def test_application_path_scope_is_preserved(self):
+        base = "http://127.0.0.1:8080/WebGoat/"
+        scope = _path_scope(base)
+        self.assertEqual(scope, "/WebGoat/")
+        self.assertTrue(_in_scope("http://127.0.0.1:8080/WebGoat/login", "127.0.0.1", scope))
+        self.assertTrue(_in_scope("http://127.0.0.1:8080/WebGoat/lesson/1", "127.0.0.1", scope))
+        self.assertFalse(_in_scope("http://127.0.0.1:8080/login", "127.0.0.1", scope))
+
+    def test_origin_root_is_allowed_only_for_root_scope(self):
+        self.assertTrue(_in_scope("http://example.com/login", "example.com", "/"))
+        self.assertFalse(_in_scope("http://example.com/login", "example.com", "/WebGoat/"))
 
 
 class TestPageParser(unittest.TestCase):

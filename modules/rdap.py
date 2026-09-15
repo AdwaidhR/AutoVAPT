@@ -15,6 +15,7 @@ network/organization without needing a dedicated ASN database.
 """
 import json
 import socket
+import ipaddress
 import urllib.request
 import urllib.error
 from .utils import run_cmd, vlog
@@ -85,17 +86,34 @@ def _whois_lookup(domain):
 
 
 def run(target, resolved_ips=None):
+    try:
+        ipaddress.ip_address(target)
+        target_is_ip = True
+    except ValueError:
+        target_is_ip = False
+
     result = {
-        "domain_rdap": _domain_rdap(target),
+        "domain_rdap": None if target_is_ip else _domain_rdap(target),
+        # Classic WHOIS is meaningful for both domains and IPs (RIPE/ARIN/etc.
+        # publish IP allocation WHOIS too), so this still runs either way.
         "whois_text": _whois_lookup(target),
         "ip_rdap": {},
     }
-    for ip in (resolved_ips or [])[:2]:  # cap lookups
+
+    ips_to_check = list(resolved_ips or [])
+    if target_is_ip and target not in ips_to_check:
+        ips_to_check.insert(0, target)
+
+    for ip in ips_to_check[:2]:  # cap lookups
         info = _ip_rdap(ip)
         if info:
             result["ip_rdap"][ip] = info
 
-    if not result["domain_rdap"] and not result["whois_text"]:
+    if target_is_ip:
+        result["note_target_type"] = ("Target is an IP address; domain RDAP lookup "
+                                       "skipped as not applicable. See ip_rdap instead.")
+
+    if not result["domain_rdap"] and not result["whois_text"] and not result["ip_rdap"]:
         result["note"] = ("RDAP lookup failed and `whois` binary not found/failed. "
                            "Install `whois` package for registrar-level detail.")
     return result

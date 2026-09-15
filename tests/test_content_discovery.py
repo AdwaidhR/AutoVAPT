@@ -1,3 +1,4 @@
+from modules.port_scanner import _merge_required_ports
 import unittest
 import sys
 import os
@@ -5,6 +6,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from modules.directory_bruteforce import _is_soft_404
 from modules.port_scanner import expand_ports
+
+
+class TestRequiredPorts(unittest.TestCase):
+    def test_required_port_is_added_without_expanding_range(self):
+        self.assertEqual(_merge_required_ports("1-1000", [8080]), "1-1000,8080")
+
+    def test_required_port_already_in_range_is_not_duplicated(self):
+        self.assertEqual(_merge_required_ports("1-1000", [443]), "1-1000")
 
 
 class TestSoft404(unittest.TestCase):

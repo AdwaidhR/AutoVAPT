@@ -16,7 +16,8 @@ surface map → risk scoring** — into one command, and produces a
 Clone it and run it — no `pip install -r requirements.txt` needed.
 Nmap, FFUF, Nikto, `dig`, and `whois` are optional integrations that
 unlock deeper results when installed; their absence never breaks a
-scan.
+scan. If `curl` is available, AutoVAPT also uses it as a bounded HTTP
+compatibility fallback when a target behaves differently with Python's HTTP client.
 
 > ⚠️ **For authorized security testing and educational use only.**
 > See [DISCLAIMER.md](DISCLAIMER.md). Never scan a system you don't
@@ -53,6 +54,29 @@ no live scan needed to see them) are included:
 
 ---
 
+
+## Assessment Target
+
+AutoVAPT requires explicit authorization before active testing. The supplied target URL is used as the assessment target. Web-layer modules remain on the target host and preserve the application path from the supplied URL. Fine-grained custom scope controls are planned for a future release.
+
+```bash
+# Application target
+python3 main.py -t http://127.0.0.1:8080/WebGoat/ --authorized
+
+# Non-interactive / CI
+python3 main.py -t http://127.0.0.1:8080/WebGoat/ --authorized --non-interactive
+```
+
+External references discovered during crawling or JavaScript analysis are retained separately and are not counted as target endpoints.
+
+If HTTP reconnaissance proves that the supplied web application is reachable,
+that observed HTTP(S) port is retained in the attack-surface inventory even if a
+network port scan did not report it. It is explicitly labeled as an
+`HTTP reconnaissance (reachable application)` observation rather than being
+misrepresented as an Nmap result.
+
+CVE results are also separated by the requested target port: versioned services on other discovered ports remain visible as host-level observations, but they do not inflate the application risk rating. CVE matches are always potential matches and require manual verification.
+
 ## Installation — no pip required
 
 ```bash
@@ -87,10 +111,11 @@ That's it. The core framework is ready to run immediately.
 | `nikto` | Additional web server misconfiguration checks | `sudo apt install nikto` |
 | `dig` / `host` / `nslookup` | Full DNS record types (MX/NS/TXT/SOA/CNAME) | `sudo apt install dnsutils` |
 | `whois` | Registrar-level WHOIS text (RDAP is tried first regardless) | `sudo apt install whois` |
-| `wkhtmltopdf` or `libreoffice` | PDF report export (HTML report always works without these) | `sudo apt install wkhtmltopdf` |
+| `weasyprint` / `wkhtmltopdf` / `libreoffice` | Optional PDF report export (HTML report always works) | See `requirements-optional.txt` |
 
-None of these are required. Every one of them has a native Python
-fallback; the framework only tells you what you're missing.
+None of these are required. The core framework has native Python fallbacks.
+`curl`, when present, is used only as an additional compatibility fallback for
+HTTP(S) targets that fail through the primary Python HTTP client.
 
 ---
 
@@ -189,7 +214,7 @@ AutoVAPT/
 ├── main.py                        # CLI orchestrator
 ├── run.sh                         # Shell wrapper
 ├── config.json                    # Default settings (JSON, not YAML)
-├── requirements-optional.txt      # Only needed for optional PDF via weasyprint
+├── requirements-optional.txt      # Optional PDF generation dependency
 ├── modules/
 │   ├── authorization.py           # Ethical/legal gate
 │   ├── external_tools.py          # nmap/ffuf/nikto/dig/whois detection
@@ -221,7 +246,7 @@ AutoVAPT/
 ## Testing
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
 No `pytest` required — the whole suite runs on `unittest` from the
@@ -242,7 +267,9 @@ scoring.
   precise than Nmap's SYN scan/service fingerprinting, which is why
   Nmap is used automatically when available.
 - CVE correlation is keyword-based against the NVD API, not exact CPE
-  version-range matching — every hit is labeled "Potential CVE Match"
+  version-range matching. Services with an unknown version are skipped to avoid
+  broad product-only false positives; detected-version matches remain labeled
+  "Potential CVE Match" and require manual verification.
   requiring manual confirmation.
 - The crawler does not execute JavaScript, so heavily client-rendered
   (SPA) applications will under-report endpoints without

@@ -136,12 +136,28 @@ def _nmap_scan(host, port_spec):
     return sorted(open_ports, key=lambda x: x["port"])
 
 
-def run(host, port_spec="1-1000", threads=50, use_nmap=True):
-    result = {"target": host, "port_spec": port_spec, "engine": None,
-              "open_ports": [], "error": None}
+def _merge_required_ports(port_spec, required_ports=None):
+    """Add explicitly targeted ports without expanding compact ranges."""
+    required = sorted(set(int(p) for p in (required_ports or []) if 1 <= int(p) <= 65535))
+    if not required:
+        return port_spec
+    try:
+        base_ports = set(expand_ports(port_spec))
+    except ValueError:
+        base_ports = set()
+    missing = [p for p in required if p not in base_ports]
+    return port_spec + ("," + ",".join(str(p) for p in missing) if missing else "")
+
+
+def run(host, port_spec="1-1000", threads=50, use_nmap=True, required_ports=None):
+    required_ports = sorted(set(int(p) for p in (required_ports or []) if 1 <= int(p) <= 65535))
+    effective_spec = _merge_required_ports(port_spec, required_ports)
+    result = {"target": host, "port_spec": effective_spec,
+              "requested_port_spec": port_spec, "required_ports": required_ports,
+              "engine": None, "open_ports": [], "error": None}
 
     if use_nmap and have("nmap"):
-        nmap_result = _nmap_scan(host, port_spec)
+        nmap_result = _nmap_scan(host, effective_spec)
         if nmap_result is not None:
             result["engine"] = "nmap"
             result["open_ports"] = nmap_result
@@ -149,7 +165,7 @@ def run(host, port_spec="1-1000", threads=50, use_nmap=True):
         result["error"] = "nmap scan failed/timed out; fell back to native scanner"
 
     try:
-        ports = expand_ports(port_spec)
+        ports = expand_ports(effective_spec)
     except ValueError as e:
         result["error"] = f"Invalid port spec '{port_spec}': {e}"
         return result

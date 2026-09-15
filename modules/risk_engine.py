@@ -26,6 +26,11 @@ def score(findings, cve_results=None):
     cve_critical_high = 0
     if cve_results:
         for svc in cve_results.get("results", []):
+            # Only CVEs attached to the requested target service contribute to
+            # the application risk score. Other discovered services remain
+            # visible in the report as host-level observations.
+            if not svc.get("target_service", True):
+                continue
             for cve in svc.get("cves", []):
                 sev = (cve.get("severity") or "").title()
                 if sev in ("Critical",):
@@ -54,8 +59,9 @@ def score(findings, cve_results=None):
         "overall_risk": overall,
         "methodology": (
             "weighted_score = sum(severity_weight x confidence_multiplier) across all "
-            "findings, including unverified CVE keyword matches (discounted 40%). "
-            "overall_risk is derived from counts, not the raw score, so a handful of "
-            "unrelated Low findings can't inflate the headline rating."
+            "findings plus unverified CVE keyword matches for the requested target service "
+            "(discounted 40%). CVEs from other discovered host services are reported separately "
+            "and do not affect the application risk rating. overall_risk is derived from counts, "
+            "not the raw score, so unrelated host observations cannot inflate the headline rating."
         ),
     }
