@@ -11,7 +11,7 @@ missing - they only unlock enhanced functionality when present.
 """
 from .utils import which, run_cmd
 
-OPTIONAL_TOOLS = ["nmap", "ffuf", "nikto", "dig", "whois", "host", "nslookup"]
+OPTIONAL_TOOLS = ["nmap", "ffuf", "nikto", "dig", "whois", "host", "nslookup", "curl"]
 
 
 def check_all():
@@ -63,6 +63,13 @@ def ffuf_version():
 
 def nikto_version():
     ok, out, _ = run_cmd(["nikto", "-Version"], timeout=8)
+    if ok and out:
+        return out.strip().splitlines()[0]
+    return None
+
+
+def curl_version():
+    ok, out, _ = run_cmd(["curl", "--version"], timeout=5)
     if ok and out:
         return out.strip().splitlines()[0]
     return None

@@ -285,3 +285,12 @@ scoring.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+
+### Enhanced external-tool assessment
+
+Use `--enhanced` to enable the optional FFUF and Nikto integrations together. Nmap is used for service enumeration when available, and cURL remains the bounded HTTP(S) compatibility fallback. Reports record external-tool availability, actual usage, versions, and Nikto indicators.
+
+```bash
+python3 main.py --target https://example.com --authorized --enhanced
+```
