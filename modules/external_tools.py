@@ -11,7 +11,7 @@ missing - they only unlock enhanced functionality when present.
 """
 from .utils import which, run_cmd
 
-OPTIONAL_TOOLS = ["nmap", "ffuf", "nikto", "dig", "whois", "host", "nslookup"]
+OPTIONAL_TOOLS = ["nmap", "ffuf", "nikto", "dig", "whois", "host", "nslookup", "curl"]
 
 
 def check_all():
@@ -68,7 +68,14 @@ def nikto_version():
     return None
 
 
-def run_nikto(base_url, timeout=300):
+def curl_version():
+    ok, out, _ = run_cmd(["curl", "--version"], timeout=5)
+    if ok and out:
+        return out.strip().splitlines()[0]
+    return None
+
+
+def run_nikto(base_url, timeout=330):
     """
     Optional Nikto integration. Only invoked when the user explicitly
     passes --nikto. Parses Nikto's plain-text output into a structured
@@ -79,16 +86,22 @@ def run_nikto(base_url, timeout=300):
                 "note": "Nikto not installed - skipped. Install with "
                         "`sudo apt install nikto` for this optional scan."}
 
-    ok, out, err = run_cmd(["nikto", "-h", base_url, "-Tuning", "x1234567890ab",
-                             "-nointeractive"], timeout=timeout)
+    ok, out, err = run_cmd(["nikto", "-h", base_url, "-nointeractive",
+                             "-maxtime", "240"], timeout=timeout)
     findings = []
     for line in out.splitlines():
         line = line.strip()
         if line.startswith("+ ") and "Server:" not in line:
             findings.append({"raw": line[2:], "manual_verification_required": True})
 
+    timeout_note = (
+        "Nikto reached its configured 240-second assessment limit; partial results were retained."
+        if "maximum execution time" in (err or "").lower()
+        else f"Nikto exited with an error: {err.strip()[:300]}"
+    )
     return {
         "available": True, "success": ok, "raw_findings": findings,
         "finding_count": len(findings),
-        "note": None if ok else f"Nikto exited with an error: {err.strip()[:300]}",
+        "note": None if ok else timeout_note,
     }
+

@@ -75,6 +75,7 @@ class FetchResult:
         self.redirect_chain = []
         self.error = None
         self.elapsed_ms = None
+        self.curl_fallback_used = False
 
     def to_dict(self, include_body=False):
         d = {
@@ -245,6 +246,7 @@ def fetch(url, method="GET", timeout=DEFAULT_TIMEOUT, max_body_bytes=1_500_000,
         fallback = _fetch_with_curl(url, method, timeout, max_body_bytes, allow_redirects, headers)
         if fallback is not None:
             fallback.error = None
+            fallback.curl_fallback_used = True
             fallback.elapsed_ms = round((time.time() - start) * 1000, 1)
             return fallback
 
@@ -295,6 +297,9 @@ def run(target):
         base_url = scheme
         result["working_base_url"] = base_url
         result[scheme.split("://")[0]] = primary.to_dict()
+        if primary.curl_fallback_used:
+            result["curl_fallback_used"] = True
+            result["curl_fallback_count"] += 1
     else:
         result["error"] = primary.error if primary else "Both http:// and https:// failed"
         return result
@@ -308,6 +313,9 @@ def run(target):
         other_target += "?" + parsed_target.query
     other_result = fetch(other_target)
     result[other_scheme] = other_result.to_dict()
+    if other_result.curl_fallback_used:
+        result["curl_fallback_used"] = True
+        result["curl_fallback_count"] += 1
 
     app_root = base_url.rstrip("/") + "/"
     for path, key in [("robots.txt", "robots_txt"), ("sitemap.xml", "sitemap_xml"),
@@ -318,5 +326,8 @@ def run(target):
                             "excerpt": r.body[:500]}
         else:
             result[key] = {"status": r.status, "found": False}
+        if r.curl_fallback_used:
+            result["curl_fallback_used"] = True
+            result["curl_fallback_count"] += 1
 
     return result

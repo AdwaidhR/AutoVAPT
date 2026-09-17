@@ -336,6 +336,32 @@ def _sec_attack_surface(surface):
     return _table(["Metric", "Value"], rows)
 
 
+def _sec_external_tools(results, tool_versions=None):
+    metadata = results.get("metadata", {})
+    tools = metadata.get("external_tools", {})
+    versions = tool_versions or tools.get("versions", {})
+    roles = {"nmap":"Port/service enumeration", "ffuf":"Web content discovery", "nikto":"Web-server assessment", "curl":"HTTP(S) compatibility fallback"}
+    rows=[]
+    for name in ("nmap","ffuf","nikto","curl"):
+        info=tools.get(name,{})
+        status="Used" if info.get("used") else ("Available" if info.get("available") else "Not installed")
+        rows.append([esc(name.upper()),esc(status),esc(str(versions.get(name,"not available"))),esc(roles[name])])
+    html=_table(["Tool","Status","Version","Role"],rows)
+    nikto=results.get("nikto") or {}
+    if nikto:
+        nrows=[[esc(x.get("raw","")),"Yes" if x.get("manual_verification_required") else "No"] for x in nikto.get("raw_findings",[])]
+        html += "<h3>Nikto Results</h3>" + _table(["Nikto Indicator","Manual Verification"],nrows,"Nikto ran but produced no parsed indicators.")
+        if nikto.get("note"):
+            html += f'<p class="empty-note">{esc(str(nikto["note"]))}</p>'
+    if tools.get("curl",{}).get("used"):
+        count = int(tools.get("curl",{}).get("fallback_count", 0))
+        if count:
+            html += f'<p><strong>cURL:</strong> The compatibility fallback was used after the primary Python HTTP client failed ({count} fallback request(s)).</p>'
+        else:
+            html += '<p><strong>cURL:</strong> The compatibility fallback was used after the primary Python HTTP client failed.</p>'
+    return html
+
+
 def _sec_methodology():
     return """
     <ol>
@@ -395,6 +421,7 @@ def generate(results, output_dir, fmt="html", tool_versions=None):
         ("Security Headers & Cookies", "headers", _sec_headers_cookies(findings)),
         ("Vulnerability Findings", "findings", _sec_findings(findings)),
         ("CVE Correlation", "cves", _sec_cves(results.get("cves"))),
+        ("External Security Tools", "external-tools", _sec_external_tools(results, tool_versions)),
         ("Methodology", "methodology", _sec_methodology()),
     ]
 

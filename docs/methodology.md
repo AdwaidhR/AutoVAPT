@@ -82,3 +82,8 @@ or a commercial vulnerability scanner. It's an orchestration and
 learning framework that demonstrates understanding of the VAPT
 methodology end-to-end - useful for a portfolio, a CTF/lab workflow, or
 as a first pass before deeper manual testing.
+
+
+### TLS analysis behavior
+
+TLS analysis is conditional on the selected working application URL using HTTPS. For HTTP-only targets, AutoVAPT does not force a TLS handshake and reports the phase as not run. When HTTPS is available, the TLS module performs a non-destructive handshake and inspects the negotiated protocol, cipher, and certificate details.

@@ -14,9 +14,9 @@ surface map → risk scoring** — into one command, and produces a
 
 **The core framework requires zero third-party Python packages.**
 Clone it and run it — no `pip install -r requirements.txt` needed.
-Nmap, FFUF, Nikto, `dig`, and `whois` are optional integrations that
-unlock deeper results when installed; their absence never breaks a
-scan. If `curl` is available, AutoVAPT also uses it as a bounded HTTP
+Nmap, FFUF, and Nikto are optional integrations that unlock deeper
+results when installed; `dig`/`whois` provide additional DNS/registration
+data. Their absence never breaks a scan. If `curl` is available, AutoVAPT also uses it as a bounded HTTP
 compatibility fallback when a target behaves differently with Python's HTTP client.
 
 > ⚠️ **For authorized security testing and educational use only.**
@@ -68,6 +68,8 @@ python3 main.py -t http://127.0.0.1:8080/WebGoat/ --authorized --non-interactive
 ```
 
 External references discovered during crawling or JavaScript analysis are retained separately and are not counted as target endpoints.
+
+TLS analysis runs when the selected working application URL uses HTTPS and a TLS service is reachable. For HTTP-only targets, the report explicitly shows `TLS analysis not run` rather than treating an HTTP service as TLS.
 
 If HTTP reconnaissance proves that the supplied web application is reachable,
 that observed HTTP(S) port is retained in the attack-surface inventory even if a
@@ -136,6 +138,9 @@ python3 main.py --target https://example.com --authorized --top-ports
 # Use FFUF / Nikto if installed
 python3 main.py --target https://example.com --authorized --ffuf
 python3 main.py --target https://example.com --authorized --nikto
+
+# Enable the enhanced web assessment (FFUF + Nikto when installed)
+python3 main.py --target https://example.com --authorized --enhanced
 
 # Both HTML + PDF report
 python3 main.py --target https://example.com --authorized --format both
@@ -285,3 +290,12 @@ scoring.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+
+### Enhanced external-tool assessment
+
+Use `--enhanced` to enable the optional FFUF and Nikto integrations together. Nmap is used for service enumeration when available, and cURL remains the bounded HTTP(S) compatibility fallback. Reports record external-tool availability, actual usage, versions, and Nikto indicators.
+
+```bash
+python3 main.py --target https://example.com --authorized --enhanced
+```
