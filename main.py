@@ -88,7 +88,6 @@ built-in defaults if config.json is missing or a key is absent).
     p.add_argument("--extensions", default="", help="Comma-separated extensions, e.g. php,html,bak")
     p.add_argument("--ffuf", action="store_true", help="Use ffuf for content discovery if installed")
     p.add_argument("--nikto", action="store_true", help="Run Nikto if installed")
-    p.add_argument("--enhanced", action="store_true", help="Enable enhanced FFUF + Nikto assessment when installed")
     p.add_argument("--skip-ports", action="store_true")
     p.add_argument("--skip-crawl", action="store_true")
     p.add_argument("--skip-content", action="store_true")
@@ -100,11 +99,7 @@ built-in defaults if config.json is missing or a key is absent).
     p.add_argument("--verbose", action="store_true")
     p.add_argument("--check-dependencies", action="store_true",
                     help="Check optional tool availability and exit")
-    args = p.parse_args()
-    if args.enhanced:
-        args.ffuf = True
-        args.nikto = True
-    return args
+    return p.parse_args()
 
 
 def resolve_host_and_url(target):
@@ -233,8 +228,6 @@ def main():
             host, args.ports, threads=args.threads, required_ports=[target_port] if target_port else []
         )
         ran("port_scanner")
-        results["metadata"].setdefault("external_tools", {})
-        results["metadata"]["external_tools"]["nmap"] = {"available": external_tools.have("nmap"), "used": str(results["ports"].get("engine", "")).lower().startswith("nmap")}
     else:
         results["ports"] = {}
 
@@ -242,8 +235,6 @@ def main():
     log("PHASE", "HTTP/HTTPS Reconnaissance")
     results["web"] = http_recon.run(url_hint or host)
     ran("http_recon")
-    results["metadata"].setdefault("external_tools", {})
-    results["metadata"]["external_tools"]["curl"] = {"available": external_tools.have("curl"), "used": bool(results["web"].get("curl_fallback_used"))}
     base_url = results["web"].get("working_base_url")
 
     # HTTP reconnaissance is authoritative for the explicitly supplied web
@@ -310,7 +301,6 @@ def main():
                 extensions=extensions, use_ffuf=args.ffuf,
             )
             ran("directory_bruteforce")
-            results["metadata"]["external_tools"]["ffuf"] = {"available": external_tools.have("ffuf"), "used": results["content_discovery"].get("engine") == "ffuf"}
         else:
             results["content_discovery"] = {}
 
@@ -319,7 +309,6 @@ def main():
             log("PHASE", "Nikto Scan (optional)")
             results["nikto"] = external_tools.run_nikto(base_url)
             ran("nikto")
-            results["metadata"]["external_tools"]["nikto"] = {"available": bool(results["nikto"].get("available")), "used": bool(results["nikto"].get("success"))}
 
         # --- Vulnerability indicators ---
         log("PHASE", "Vulnerability Indicator Checks")
@@ -348,19 +337,11 @@ def main():
     results["metadata"]["scan_end"] = now_iso()
     results["metadata"]["duration_seconds"] = elapsed
     results["metadata"]["generated_on"] = now_iso()
-    results["metadata"].setdefault("external_tools", {})
-    results["metadata"]["external_tools"]["versions"] = {
-        "nmap": external_tools.nmap_version() or "not available",
-        "ffuf": external_tools.ffuf_version() or "not available",
-        "nikto": external_tools.nikto_version() or "not available",
-        "curl": external_tools.curl_version() or "not available",
-    }
 
     tool_versions = {
         "nmap": external_tools.nmap_version() or "not used",
         "ffuf": external_tools.ffuf_version() or "not used",
-        "nikto": external_tools.nikto_version() or "not available",
-        "curl": external_tools.curl_version() or "not available",
+        "nikto": external_tools.nikto_version() or "not used",
     }
 
     log("PHASE", "Generating Report")
